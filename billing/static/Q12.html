@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Q12</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #chart {
+            display: flex;
+            justify-content: center;
+        }
+        h2 {
+            text-align: center;
+            color: #4e79a7;
+        }
+        .tooltip {
+          position: absolute;
+          background-color: white;
+          border: 1px solid #ccc;
+          padding: 7px;
+          border-radius: 5px;
+          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+          font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Phân phối Mức chi trả của Khách hàng</h2>
+    <div id="chart"></div>
+
+    <script>
+        const margin = {top: 20, right: 30, bottom: 50, left: 120},  
+        width = 1000 - margin.left - margin.right,  
+        height = 435 - margin.top - margin.bottom;
+
+        const svg = d3.select("#chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip");
+
+
+        d3.json("/visualize/").then(rawData => {
+            rawData.forEach(d => {
+                d["Thành tiền"] = +d["Thành tiền"];
+            });
+
+            const spendingByCustomer = d3.rollups(
+                rawData,
+                v => d3.sum(v, d => d["Thành tiền"]),
+                d => d["Mã khách hàng"]
+            );
+
+            const formatNumber = d3.format(",");
+            const binSize = 50000;
+
+            const binsMap = new Map();
+
+            spendingByCustomer.forEach(([customerId, totalSpend]) => {
+                const binIndex = Math.floor(totalSpend / binSize);
+                const lowerBound = binIndex * 50000;
+                const upperBound = lowerBound + 50000;
+                const binLabel = `${upperBound / 1000}K`;
+
+                const lowerFormatted = formatNumber(lowerBound);
+                const upperFormatted = formatNumber(upperBound);
+                const tooltipLabel = `${lowerFormatted} đến ${upperFormatted}`;
+
+                if (!binsMap.has(binLabel)) {
+                    binsMap.set(binLabel, { count: 0, tooltip: tooltipLabel, lower: lowerBound, upper: upperBound });
+                }
+
+                const binData = binsMap.get(binLabel);
+                binData.count += 1;
+            });
+
+            const data = Array.from(binsMap, ([label, { count, tooltip, lower, upper }]) => ({
+                label,
+                count,
+                tooltip,
+                lower,
+                upper
+            })).sort((a, b) => a.lower - b.lower);
+
+            console.log("Phân phối mức chi trả:", data);
+
+            const x = d3.scaleBand()
+                .domain(data.map(d => d.label))
+                .range([0, width])
+                .padding(0.1);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.count)])
+                .nice()
+                .range([height, 0]);
+
+            svg.append("g")
+            .attr("transform", `translate(0, ${height})`)
+            .call(d3.axisBottom(x)
+                .tickFormat((d, i) => {
+                    return (i % 2 === 0) ? d : "";
+                })
+            )
+            .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("dx", "-0.8em")
+            .attr("dy", "-0.15em")
+            .attr("transform", "rotate(-90)")
+            .style("font-size", "12px");
+
+
+            svg.append("g")
+                .call(d3.axisLeft(y))
+                .selectAll("text")
+                .style("font-size", "12px");
+
+            svg.selectAll(".bar")
+                .data(data)
+                .join("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.label))
+                .attr("y", d => y(d.count))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d.count))
+                .attr("fill", "#4e79a7")
+                .on("mouseover", (event, d) => {
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    const lowerFormatted = d.lower.toLocaleString('vi-VN');
+                    const upperFormatted = d.upper.toLocaleString('vi-VN');
+                    tooltip.html(`
+                        <strong>Đã chỉ tiêu Từ ${lowerFormatted} đến ${upperFormatted}</strong><br/>
+                        Số lượng KH: ${d.count.toLocaleString('vi-VN')}
+                    `)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", () => {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                });
+
+        }).catch(error => {
+            console.error("Lỗi load dữ liệu:", error);
+        });
+    </script>
+</body>
+</html>

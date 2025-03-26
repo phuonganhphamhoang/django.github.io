@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hiển thị JSON từ Django</title>
+</head>
+<body>
+    <h1>Dữ liệu JSON từ Django</h1>
+
+    <pre id="json-output"></pre>  <!-- Hiển thị JSON trên giao diện -->
+
+    <script>
+        const data = {{ data|safe }};  // Nhúng toàn bộ dữ liệu JSON
+        console.log("Dữ liệu từ tất cả các bảng:", data);
+
+        // Hiển thị JSON trên trang web
+        document.getElementById("json-output").textContent = JSON.stringify(data, null, 4);
+    </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload CSV & Thêm Đơn Hàng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mx-auto p-4">
+    <nav class="flex justify-between items-center py-4">
+        <div class="text-lg font-semibold">Sales Management System</div>
+        <div>
+            <a href="{% url 'chart' %}" class="text-gray-600 hover:text-gray-800 mx-2">Chart</a>
+            <a href="{% url 'json_view' %}" class="text-gray-600 hover:text-gray-800 mx-2">Json View</a>
+        </div>
+    </nav>
+
+    {% if messages %}
+    <div class="mt-4">
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="px-4 py-2 rounded text-white 
+                {% if message.tags == 'success' %} bg-green-500 
+                {% elif message.tags == 'error' %} bg-red-500 
+                {% elif message.tags == 'warning' %} bg-yellow-500 
+                {% elif message.tags == 'info' %} bg-blue-500 
+                {% endif %} mb-2">
+                {{ message }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}    
+
+    <!-- Form Upload CSV -->
+    <div class="bg-white shadow-md rounded-lg p-6 mt-6">
+        <h2 class="text-2xl font-bold mb-4">Upload CSV File</h2>
+        <form action="{% url 'upload_csv' %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-4">
+                <input type="file" name="csv_file" class="border border-gray-300 p-2 w-full" accept=".csv" required>
+            </div>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Upload CSV</button>
+        </form>
+    </div>
+</body>
+</html>
